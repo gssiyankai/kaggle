@@ -27,12 +27,14 @@ numeric_prediction <- as.numeric(prediction)
 # Create solution
 ncols <- nlevels(train$Category)
 nrows <- nrow(test)
-solution <- matrix(rep(0, nrows * ncols) , nrows, ncols)
+solution <- matrix(0, nrows, ncols)
+colnames(solution) <- levels(train$Category)
 for(x in test$Id)
 {
   solution[x+1, numeric_prediction[x+1]] <- 1
 }
-solution <- cbind(test$Id, solution)
+solution <- cbind(format(test$Id, scientific = FALSE), solution)
+colnames(solution)[1] <- "Id"
 
 # Write solution
-write.csv(solution, file = "solution.csv", row.names = FALSE)
+write.csv(solution, file = "solution.csv", row.names = FALSE, quote = FALSE)
