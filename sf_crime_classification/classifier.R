@@ -7,21 +7,34 @@ library(doSNOW)
 train <- read.csv("train.csv", header = TRUE)
 test <- read.csv("test.csv", header = TRUE)
 
-train <- data.frame(Category=train$Category, 
-                    PdDistrict=train$PdDistrict, 
-                    DayOfWeek=train$DayOfWeek,
-                    Date=train$Date)
-test <- data.frame(Id=test$Id,
-                   PdDistrict=test$PdDistrict,
-                   DayOfWeek=test$DayOfWeek,
-                   Date=test$Date)
-
 # Extract data from train set
-year_extractor <- function(date) {
-  gsub("([0-9]{4})-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}", "\\1", date)
+DATE_REGEXP = "([0-9]{4})-([0-9]{2})-[0-9]{2} ([0-9]{2}):[0-9]{2}:[0-9]{2}"
+date_extractor <- function(date, idx) {
+  gsub(DATE_REGEXP, paste("\\",as.character(idx), sep = ""), date)
 }
+PART_OF_DAY = c("MORNING", "AFTERNOON", "EVENING", "NIGHT")
+
+year_extractor <- function(date) date_extractor(date, 1)
+month_extractor <- function(date) date_extractor(date, 2)
+hour_extractor <- function(date) date_extractor(date, 3)
+part_of_day_extractor <- function(date) {
+  hour <- as.numeric(hour_extractor(date))
+  part_of_day <- hour
+  part_of_day[hour>=7 & hour<13] <- PART_OF_DAY[1]
+  part_of_day[hour>=13 & hour<17] <- PART_OF_DAY[2]
+  part_of_day[hour>=17 & hour<21] <- PART_OF_DAY[3]
+  part_of_day[hour>=21 | hour<7] <- PART_OF_DAY[4]
+  as.factor(part_of_day)
+}
+
 train$Year <- year_extractor(train$Date)
 test$Year <- year_extractor(test$Date)
+
+train$Month <- month_extractor(train$Date)
+test$Month <- month_extractor(test$Date)
+
+train$PartOfDay <- part_of_day_extractor(train$Date)
+test$PartOfDay <- part_of_day_extractor(test$Date)
 
 # Start cluster
 NB_NODES <- 2
@@ -33,7 +46,7 @@ NB_TREES <- 500
 NB_TREES_PER_NODE <- 50
 NB_CHUNKS <- NB_TREES / NB_TREES_PER_NODE
 rf <- foreach(ntree=rep(NB_TREES_PER_NODE, NB_CHUNKS), .combine=combine, .packages='randomForest') %dopar% {
-  randomForest(as.factor(Category) ~ PdDistrict + DayOfWeek + Year,
+  randomForest(as.factor(Category) ~ PdDistrict + DayOfWeek + Year + PartOfDay,
                data=train, importance=TRUE, ntree=ntree)
 }
 
