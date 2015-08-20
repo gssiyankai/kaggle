@@ -7,8 +7,8 @@ library(doSNOW)
 train <- read.csv("train.csv", header = TRUE)
 test <- read.csv("test.csv", header = TRUE)
 
-train <- data.frame(Category=train$Category, PdDistrict=train$PdDistrict)
-test <- data.frame(Id=test$Id, PdDistrict=test$PdDistrict)
+train <- data.frame(Category=train$Category, PdDistrict=train$PdDistrict, DayOfWeek=train$DayOfWeek)
+test <- data.frame(Id=test$Id, PdDistrict=test$PdDistrict, DayOfWeek=test$DayOfWeek)
 
 # Start cluster
 NB_NODES <- 2
@@ -20,7 +20,7 @@ NB_TREES <- 500
 NB_TREES_PER_NODE <- 50
 NB_CHUNKS <- NB_TREES / NB_TREES_PER_NODE
 rf <- foreach(ntree=rep(NB_TREES_PER_NODE, NB_CHUNKS), .combine=combine, .packages='randomForest') %dopar% {
-  randomForest(as.factor(Category) ~ PdDistrict,
+  randomForest(as.factor(Category) ~ PdDistrict + DayOfWeek,
                data=train, importance=TRUE, ntree=ntree)
 }
 
