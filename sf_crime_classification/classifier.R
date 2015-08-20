@@ -7,8 +7,21 @@ library(doSNOW)
 train <- read.csv("train.csv", header = TRUE)
 test <- read.csv("test.csv", header = TRUE)
 
-train <- data.frame(Category=train$Category, PdDistrict=train$PdDistrict, DayOfWeek=train$DayOfWeek)
-test <- data.frame(Id=test$Id, PdDistrict=test$PdDistrict, DayOfWeek=test$DayOfWeek)
+train <- data.frame(Category=train$Category, 
+                    PdDistrict=train$PdDistrict, 
+                    DayOfWeek=train$DayOfWeek,
+                    Date=train$Date)
+test <- data.frame(Id=test$Id,
+                   PdDistrict=test$PdDistrict,
+                   DayOfWeek=test$DayOfWeek,
+                   Date=test$Date)
+
+# Extract data from train set
+year_extractor <- function(date) {
+  gsub("([0-9]{4})-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}", "\\1", date)
+}
+train$Year <- year_extractor(train$Date)
+test$Year <- year_extractor(test$Date)
 
 # Start cluster
 NB_NODES <- 2
@@ -20,7 +33,7 @@ NB_TREES <- 500
 NB_TREES_PER_NODE <- 50
 NB_CHUNKS <- NB_TREES / NB_TREES_PER_NODE
 rf <- foreach(ntree=rep(NB_TREES_PER_NODE, NB_CHUNKS), .combine=combine, .packages='randomForest') %dopar% {
-  randomForest(as.factor(Category) ~ PdDistrict + DayOfWeek,
+  randomForest(as.factor(Category) ~ PdDistrict + DayOfWeek + Year,
                data=train, importance=TRUE, ntree=ntree)
 }
 
