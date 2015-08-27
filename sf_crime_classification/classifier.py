@@ -2,19 +2,23 @@ import pandas as pd
 from sklearn import preprocessing
 from sklearn.naive_bayes import BernoulliNB
 
+YEARS = [x for x in range(2003, 2016)]
+MONTHS = [x for x in range(-1, -13, -1)]
+HOURS = [x for x in range(0, 24)]
 DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 PD_DISTRICT = ['BAYVIEW', 'CENTRAL', 'INGLESIDE', 'MISSION', 'NORTHERN', 'PARK', 'RICHMOND', 'SOUTHERN', 'TARAVAL', 'TENDERLOIN']
-HOURS_IN_DAY = [x for x in range(0, 24)]
 
 def convert_data(data):
-    # Convert categorical variables (weekdays, districts, and hours) to binarized arrays
-    days = pd.get_dummies(data.DayOfWeek)
-    district = pd.get_dummies(data.PdDistrict)
-    hour = data.Dates.dt.hour
+    # Convert categorical variables (yeras, months, hours, weekdays, and districts) to binarized arrays
+    year = data.Dates.dt.year
+	year = pd.getDummies(year)
+	month = -data.Dates.dt.month
+	month = pd.get_dummies(month)
+	hour = data.Dates.dt.hour
     hour = pd.get_dummies(hour)
-
-    return pd.concat([hour, days, district], axis=1)
-
+	day = pd.get_dummies(data.DayOfWeek)
+    district = pd.get_dummies(data.PdDistrict)
+    return pd.concat([year, month, hour, day, district], axis=1)
 
 # Load data
 train = pd.read_csv('train.csv', parse_dates=['Dates'])
@@ -31,8 +35,8 @@ train_data['crime'] = crime_label
 # Build test data
 test_data = convert_data(test)
 
-#Classification model based on the day, the district and the time
-features = DAYS_OF_WEEK + PD_DISTRICT + HOURS_IN_DAY
+#Classification model based on the year, month, time, day and the district
+features = YEARS + MONTHS + HOURS + DAYS_OF_WEEK + PD_DISTRICT
 
 model = BernoulliNB()
 model.fit(train_data[features], train_data['crime'])
